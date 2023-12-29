@@ -57,24 +57,37 @@ public class Main {
             airfield.timeStampToWeatherCode.put(Long.parseLong(values[1]), Integer.parseInt(values[2]));
         }
 
-        file = new File("missions/AS-0.in");
-        scanner = new Scanner(file);
-        String type = scanner.nextLine();
+        task1();
+        task2();
+    }
+
+    /******************************************************************************************************************************************************/
+    // TASK - 1
+    /******************************************************************************************************************************************************/
+
+    public static void task1() throws Exception {
+        Long systemTime = System.currentTimeMillis();
+
+        File file = new File("missions/AS-0.in");
+        Scanner scanner = new Scanner(file);
+
+        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream("task1.out")));
+        scanner.nextLine();
+
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
             String[] values = line.split(" ");
             Airport from = airports.get(values[0]);
             Airport to = airports.get(values[1]);
             Long timeOrigin = Long.parseLong(values[2]);
-            Long timeDestination = Long.parseLong(values[3]);
 
             HashMap<String, Double> costs = new HashMap<String, Double>();
             HashMap<String, String> fromWhere = new HashMap<String, String>();
             costs.put(from.airportCode, 0.0);
             PriorityQueue<Node> queue = new PriorityQueue<Node>();
-            queue.add(new Node(from.airportCode, null, 0.0, timeOrigin));
+            queue.add(new Node(from.airportCode, 0.0, timeOrigin));
             while (!queue.isEmpty()) {
-                Node node = queue.poll();
+                Node node = queue.remove();
                 if (node.airportCode.equals(to.airportCode)) {
                     break;
                 }
@@ -84,37 +97,121 @@ public class Main {
                     Airport nextAirport = airports.get(direction);
                     Double distance = airport.distanceTo(nextAirport);
                     Airfield nextAirfield = airfields.get(nextAirport.airfieldName);
-                    Double cost = node.cost + airfield.weatherCoefficient(nextAirfield, timeOrigin) * 300 + distance;
-                    if (costs.containsKey(nextAirport.airportCode)) {
-                        if (cost < costs.get(nextAirport.airportCode)) {
-                            costs.put(nextAirport.airportCode, cost);
-                            queue.add(new Node(nextAirport.airportCode, node.airportCode, cost, node.time));
-                            fromWhere.put(nextAirport.airportCode, node.airportCode);
-                        }
-                    } else {
+                    Double cost = node.cost
+                            + airfield.weatherCoefficient(nextAirfield, timeOrigin, Long.valueOf(0)) * 300 + distance;
+
+                    if (!costs.containsKey(direction) || cost < costs.get(direction)) {
                         costs.put(nextAirport.airportCode, cost);
-                        queue.add(new Node(nextAirport.airportCode, node.airportCode, cost, node.time));
+                        queue.add(new Node(nextAirport.airportCode, cost, timeOrigin));
                         fromWhere.put(nextAirport.airportCode, node.airportCode);
                     }
                 }
             }
+
             String airportCode = to.airportCode;
             ArrayList<String> path = new ArrayList<String>();
             while (airportCode != null) {
                 path.add(airportCode);
                 airportCode = fromWhere.get(airportCode);
             }
-            for (int i = path.size() - 2; i >= 0; i--) {
+            for (int i = path.size() - 1; i >= 0; i--) {
                 System.out.print(path.get(i) + " ");
-                System.out.print(costs.get(path.get(i)) + " ");
-                Airfield airfield = airfields.get(airports.get(path.get(i)).airfieldName);
-                Airfield previousAirfield = airfields.get(airports.get(path.get(i + 1)).airfieldName);
-                System.out.println(previousAirfield.weatherCoefficient(airfield, timeOrigin));
-                System.out.println(previousAirfield.name + " " + previousAirfield.timeStampToWeatherCode.get(timeOrigin)
-                        + " " + airfield.name + " "
-                        + airfield.timeStampToWeatherCode.get(timeOrigin));
             }
             System.out.println(costs.get(to.airportCode));
         }
+
+        System.out.println((System.currentTimeMillis() - systemTime) / 1000.0);
     }
+
+    /******************************************************************************************************************************************************/
+    // TASK - 2
+    /******************************************************************************************************************************************************/
+
+    public static void task2() throws Exception {
+        Long systemTime = System.currentTimeMillis();
+
+        File file = new File("missions/AS-0.in");
+        Scanner scanner = new Scanner(file);
+
+        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream("task2.out")));
+
+        String type = scanner.nextLine();
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            String[] values = line.split(" ");
+            Airport from = airports.get(values[0]);
+            Airport to = airports.get(values[1]);
+            Long timeOrigin = Long.parseLong(values[2]);
+            Long deadline = Long.parseLong(values[3]);
+
+            HashMap<Node, Double> costs = new HashMap<Node, Double>();
+            HashMap<Node, Node> fromWhere = new HashMap<Node, Node>();
+            costs.put(new Node(from.airportCode, 0.0, timeOrigin), 0.0);
+
+            PriorityQueue<Node> queue = new PriorityQueue<Node>();
+            queue.add(new Node(from.airportCode, 0.0, timeOrigin));
+
+            Long destinationTime = null;
+
+            while (!queue.isEmpty()) {
+                Node node = queue.remove();
+                if (node.airportCode.equals(to.airportCode)) {
+                    destinationTime = node.time;
+                    break;
+                }
+                if (node.time > deadline) {
+                    continue;
+                }
+
+                Airport airport = airports.get(node.airportCode);
+                Airfield airfield = airfields.get(airport.airfieldName);
+
+                for (String direction : airport.directions) {
+                    Airport nextAirport = airports.get(direction);
+                    Airfield nextAirfield = airfields.get(nextAirport.airfieldName);
+
+                    Double distance = airport.distanceTo(nextAirport);
+                    Long flightDuration = airport.flightDuration(nextAirport, type, distance);
+
+                    if (node.time + flightDuration > deadline) {
+                        continue;
+                    }
+
+                    Double cost = node.cost + airfield.weatherCoefficient(nextAirfield, node.time, flightDuration) * 300
+                            + distance;
+
+                    Node newDirectionNode = new Node(nextAirport.airportCode, cost, node.time + flightDuration);
+
+                    if (!costs.containsKey(newDirectionNode) || cost < costs.get(newDirectionNode)
+                            && newDirectionNode.time <= deadline) {
+                        costs.put(newDirectionNode, cost);
+                        queue.add(newDirectionNode);
+                        fromWhere.put(newDirectionNode, node);
+                    }
+                }
+
+                if (node.time + 6 * 60 * 60 < deadline) {
+                    Node parkingNode = new Node(node.airportCode, node.cost + airport.parkingCost,
+                            node.time + 6 * 60 * 60);
+                    costs.put(parkingNode, node.cost + airport.parkingCost);
+                    queue.add(parkingNode);
+                    fromWhere.put(parkingNode, node);
+                }
+            }
+
+            ArrayList<String> path = new ArrayList<String>();
+            Node destinationNode = new Node(to.airportCode, 0.0, destinationTime);
+            while (destinationNode != null) {
+                path.add(destinationNode.airportCode);
+                destinationNode = fromWhere.get(destinationNode);
+            }
+            for (int i = path.size() - 1; i >= 0; i--) {
+                System.out.print(path.get(i) + " ");
+            }
+            System.out.println(costs.get(new Node(to.airportCode, 0.0, destinationTime)));
+        }
+        System.out.println((System.currentTimeMillis() - systemTime) / 1000.0);
+    }
+
 }

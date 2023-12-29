@@ -47,8 +47,8 @@ public class Airfield {
         return coefficient;
     }
 
-    public Double weatherCoefficient(Airfield airfield, Long time) {
+    public Double weatherCoefficient(Airfield airfield, Long time, Long duration) {
         return weatherMultiplier(timeStampToWeatherCode.get(time))
-                * airfield.weatherMultiplier(timeStampToWeatherCode.get(time));
+                * airfield.weatherMultiplier(airfield.timeStampToWeatherCode.get(time + duration));
     }
 }

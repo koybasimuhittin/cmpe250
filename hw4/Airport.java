@@ -33,4 +33,38 @@ class Airport {
         double d = 2 * R * c;
         return d;
     }
+
+    public Long flightDuration(Airport airport, String type, Double distance) {
+        if (type.equals("Carreidas 160")) {
+            if (distance <= 175)
+                return Long.valueOf(6 * 60 * 60);
+            else if (distance <= 350)
+                return Long.valueOf(12 * 60 * 60);
+            else
+                return Long.valueOf(18 * 60 * 60);
+        } else if (type.equals("Orion III")) {
+            if (distance <= 1500)
+                return Long.valueOf(6 * 60 * 60);
+            else if (distance <= 3000)
+                return Long.valueOf(12 * 60 * 60);
+            else
+                return Long.valueOf(18 * 60 * 60);
+        } else if (type.equals("Skyfleet S570")) {
+            if (distance <= 500)
+                return Long.valueOf(6 * 60 * 60);
+            else if (distance <= 1000)
+                return Long.valueOf(12 * 60 * 60);
+            else
+                return Long.valueOf(18 * 60 * 60);
+        } else if (type.equals("T-16 Skyhopper")) {
+            if (distance <= 2500)
+                return Long.valueOf(6 * 60 * 60);
+            else if (distance <= 5000)
+                return Long.valueOf(12 * 60 * 60);
+            else
+                return Long.valueOf(18 * 60 * 60);
+        } else {
+            return Long.valueOf(0);
+        }
+    }
 }
