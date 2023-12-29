@@ -15,7 +15,7 @@ public class Main {
     public static HashMap<String, Airfield> airfields = new HashMap<String, Airfield>();
 
     public static void main(String[] args) throws Exception {
-        File file = new File("airports/AS-0.csv");
+        File file = new File("airports/".concat(args[0]));
         Scanner scanner = new Scanner(file);
         scanner.nextLine();
         while (scanner.hasNextLine()) {
@@ -33,7 +33,7 @@ public class Main {
             }
         }
 
-        file = new File("directions/AS-0.csv");
+        file = new File("directions/".concat(args[1]));
         scanner = new Scanner(file);
         scanner.nextLine();
         while (scanner.hasNextLine()) {
@@ -43,7 +43,7 @@ public class Main {
             airport.directions.add(values[1]);
         }
 
-        file = new File("weather.csv");
+        file = new File(args[2]);
         scanner = new Scanner(file);
         scanner.nextLine();
         while (scanner.hasNextLine()) {
@@ -57,21 +57,21 @@ public class Main {
             airfield.timeStampToWeatherCode.put(Long.parseLong(values[1]), Integer.parseInt(values[2]));
         }
 
-        task1();
-        task2();
+        task1(args[3], args[4]);
+        task2(args[3], args[5]);
     }
 
     /******************************************************************************************************************************************************/
     // TASK - 1
     /******************************************************************************************************************************************************/
 
-    public static void task1() throws Exception {
+    public static void task1(String arg, String out) throws Exception {
         Long systemTime = System.currentTimeMillis();
 
-        File file = new File("missions/AS-0.in");
+        File file = new File("missions/".concat(arg));
         Scanner scanner = new Scanner(file);
 
-        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream("task1.out")));
+        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(out)));
         scanner.nextLine();
 
         while (scanner.hasNextLine()) {
@@ -108,6 +108,11 @@ public class Main {
                 }
             }
 
+            if (!costs.containsKey(to.airportCode)) {
+                System.out.println("No possible solution");
+                continue;
+            }
+
             String airportCode = to.airportCode;
             ArrayList<String> path = new ArrayList<String>();
             while (airportCode != null) {
@@ -117,7 +122,7 @@ public class Main {
             for (int i = path.size() - 1; i >= 0; i--) {
                 System.out.print(path.get(i) + " ");
             }
-            System.out.println(costs.get(to.airportCode));
+            System.out.println(String.format("%.5f", costs.get(to.airportCode)));
         }
 
         System.out.println((System.currentTimeMillis() - systemTime) / 1000.0);
@@ -127,13 +132,13 @@ public class Main {
     // TASK - 2
     /******************************************************************************************************************************************************/
 
-    public static void task2() throws Exception {
+    public static void task2(String arg, String out) throws Exception {
         Long systemTime = System.currentTimeMillis();
 
-        File file = new File("missions/AS-0.in");
+        File file = new File("missions/".concat(arg));
         Scanner scanner = new Scanner(file);
 
-        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream("task2.out")));
+        System.setOut(new java.io.PrintStream(new java.io.FileOutputStream(out)));
 
         String type = scanner.nextLine();
 
@@ -161,6 +166,9 @@ public class Main {
                     break;
                 }
                 if (node.time > deadline) {
+                    continue;
+                }
+                if (node.cost > costs.get(node)) {
                     continue;
                 }
 
@@ -194,10 +202,18 @@ public class Main {
                 if (node.time + 6 * 60 * 60 < deadline) {
                     Node parkingNode = new Node(node.airportCode, node.cost + airport.parkingCost,
                             node.time + 6 * 60 * 60);
+                    if (costs.containsKey(parkingNode) && costs.get(parkingNode) < parkingNode.cost) {
+                        continue;
+                    }
                     costs.put(parkingNode, node.cost + airport.parkingCost);
                     queue.add(parkingNode);
                     fromWhere.put(parkingNode, node);
                 }
+            }
+
+            if (destinationTime == null) {
+                System.out.println("No possible solution");
+                continue;
             }
 
             ArrayList<String> path = new ArrayList<String>();
@@ -207,9 +223,13 @@ public class Main {
                 destinationNode = fromWhere.get(destinationNode);
             }
             for (int i = path.size() - 1; i >= 0; i--) {
-                System.out.print(path.get(i) + " ");
+                if (i < path.size() - 1 && path.get(i).equals(path.get(i + 1))) {
+                    System.out.print("PARK ");
+                } else {
+                    System.out.print(path.get(i) + " ");
+                }
             }
-            System.out.println(costs.get(new Node(to.airportCode, 0.0, destinationTime)));
+            System.out.println(String.format("%.5f", costs.get(new Node(to.airportCode, 0.0, destinationTime))));
         }
         System.out.println((System.currentTimeMillis() - systemTime) / 1000.0);
     }
